@@ -3,10 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "3box": "^1.19.0",
+    "3box-comments-react": "^3.0.1",
+    "3box-profile-edit-react": "0.0.9",
+    "bootstrap": "^4.5.0",
+    "profile-hover": "^1.1.2",
     "react": "^16.11.0",
+    "react-bootstrap": "^1.0.1",
     "react-dom": "^16.11.0",
     "react-router-dom": "^5.1.2",
-    "react-scripts": "^3.4.1"
+    "react-scripts": "^3.4.1",
+    "react-spinners": "^0.8.3"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -1,7 +1,23 @@
 import React, { Component } from "react";
+import "./App.css"
+import Box from '3box'
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import Nav from "./components/Nav"
+import { BounceLoader } from 'react-spinners'
 
 
+import Home from "./pages/Home"
+import AddApp from "./pages/AddApp"
+import Profile from "./pages/Profile"
+import { SPACE_NAME } from "./Constants"
+
+const getThreeBox = async address => {
+	const profile = await Box.getProfile(address)
+  console.log("profile", profile)
+	
+	return profile
+}
 
 export default class App extends Component {
 
@@ -18,13 +34,41 @@ export default class App extends Component {
     }
   }
   async componentDidMount() {
-    await this.getAddressFromMetaMask();
-    if (this.state.accounts) {
-      // Now we have enabled the provider and have the users
-      // ethereum address we can start working with 3Box
- 
-    }
-  }
+		await this.getAddressFromMetaMask();
+		if (this.state.accounts) {
+			const threeBoxProfile = await getThreeBox(this.state.accounts[0])
+			this.setState({ threeBoxProfile })
+		}
+
+		const box = await Box.openBox(this.state.accounts[0], window.ethereum)
+		const space = await box.openSpace(SPACE_NAME)
+		this.setState({ space, box })
+		
+		const tate = '0xAF71fEDFbECC0cf6967F68f64e5A57fa9c14E2a0'
+		const thread = await space.joinThread("application_list", {
+			firstModerator: tate, 
+			members: false
+		})
+		this.setState({thread}, ()=>(this.getAppsThread()))
+	}
+	
+	async getAppsThread() {
+		if (!this.state.thread) {
+			console.error("apps thread not in react state")
+			return
+		}
+
+		// do it once
+		const posts = await this.state.thread.getPosts()
+		this.setState({ posts })
+		
+		// do it when the threads change
+		await this.state.thread.onUpdate(async () => {
+			const posts = await this.state.thread.getPosts()
+			this.setState({posts})
+		})
+	}
+
   render() {
 
     if(this.state.needToAWeb3Browser){
@@ -32,39 +76,55 @@ export default class App extends Component {
     }
 
     return (
-      <Router>
-        <div>
-          <nav>
-            <ul>
-              <li>
-                <Link to="/">Home</Link>
-              </li>
-              <li>
-                <Link to="/profile">Profile</Link>
-              </li>
-            </ul>
-          </nav>
-
-          <Switch>
-            <Route path="/profile">
-              <Profile />
-            </Route>
-            <Route path="/">
-              <Home />
-            </Route>
-          </Switch>
-        </div>
-      </Router>
+			<Router>
+				<div>
+					<Nav />
+					<Switch>
+						<Route path="/profile">
+							{this.state.space && (
+								<Profile
+									box={this.state.box}
+									space={this.state.space}
+									accounts={this.state.accounts}
+									threeBoxProfile={this.state.threeBoxProfile}
+								/>
+							)}
+							{!this.state.space && (
+								<div style={{ width: "60px", margin: "auto" }}>
+									<BounceLoader color={"blue"} />
+								</div>
+							)}
+						</Route>
+						<Route path="/add-application">
+							{this.state.accounts && (
+								<AddApp
+									accounts={this.state.accounts}
+									thread={this.state.thread}
+									box={this.state.box}
+									space={this.state.space}
+									threadMembers={this.state.threadMembers}
+									posts={this.state.posts}
+									threeBoxProfile={this.state.threeBoxProfile}
+									getAppsThread={this.getAppsThread.bind(this)}
+								/>
+							)}
+							{!this.state.accounts && <h1>Login with metamask</h1>}
+						</Route>
+						<Route path="/">
+							<Home
+								posts={this.state.posts}
+								space={this.state.space}
+								box={this.state.box}
+								getAppsThread={this.getAppsThread}
+								usersAddress={
+									this.state.accounts ? this.state.accounts[0] : null
+								}
+							/>
+						</Route>
+					</Switch>
+				</div>
+			</Router>
     );
   }
 }
 
-function Home() {
-  return <h2>Home</h2>;
-}
-
-class Profile extends Component {
-  render() {
-    return <h2>Profile </h2>;
-  }
-}
